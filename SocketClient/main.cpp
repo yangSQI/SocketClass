@@ -1,6 +1,7 @@
 #include "../SocketClass/SocketBase.hpp"
-#include <cstdio>
+#include <iostream>
 using namespace yang;
+using namespace std;
 int main(int argc, char* argv[])
 {
 	SocketBase sockBase;
