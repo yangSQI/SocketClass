@@ -12,9 +12,32 @@
 		#include <arpa/inet.h>
 		#include <unistd.h>
 		#include <fcntl.h>
+		#define SOCKET int
+#define u_int unsigned int
 	#endif
-class SocketBase
+#include <cstdio>
+// SOCKET阻塞模式
+namespace yang
 {
-	
+	enum class SocketBlockMode
+	{
+		BLOCK = 0,			// 阻塞模式
+		NON_BLOCK_ING		// 非阻塞模式
+	};
+	class SocketBase
+	{
+	private:
+		static u_int _sockBaseCount; // 记录当前程序有多少SocketBase对象,主要用于windows平台上WinSock_dll的载入和释放
+	protected:
+		/**
+		* @description : 设置SOCKET阻塞模式
+		* @param : sock: 套接字, mode: 阻塞模式
+		* @return : 成功返回true, 失败返回false 
+		*/
+		bool set_block_mode(SOCKET& sock, SocketBlockMode mode);
+	public:
+		SocketBase();
+		virtual ~SocketBase();
+	};
 };
 #endif
