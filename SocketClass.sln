@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SocketClass", "SocketClass\SocketClass.vcxproj", "{DB88DC9E-BD0C-481D-B7D3-04A64824F52B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SocketBase", "SocketBase\SocketBase.vcxproj", "{6953C791-4A75-4BA2-89ED-8801F8739043}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SocketServer", "SocketServer\SocketServer.vcxproj", "{2FEEAB4F-57CE-4E3D-B323-9AFA1BEC913B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SocketClient", "SocketClient\SocketClient.vcxproj", "{5B76C300-EB05-4ED7-8710-81C176CA624B}"
@@ -27,14 +25,6 @@ Global
 		{DB88DC9E-BD0C-481D-B7D3-04A64824F52B}.Release|x64.Build.0 = Release|x64
 		{DB88DC9E-BD0C-481D-B7D3-04A64824F52B}.Release|x86.ActiveCfg = Release|Win32
 		{DB88DC9E-BD0C-481D-B7D3-04A64824F52B}.Release|x86.Build.0 = Release|Win32
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Debug|x64.ActiveCfg = Debug|x64
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Debug|x64.Build.0 = Debug|x64
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Debug|x86.ActiveCfg = Debug|Win32
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Debug|x86.Build.0 = Debug|Win32
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Release|x64.ActiveCfg = Release|x64
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Release|x64.Build.0 = Release|x64
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Release|x86.ActiveCfg = Release|Win32
-		{6953C791-4A75-4BA2-89ED-8801F8739043}.Release|x86.Build.0 = Release|Win32
 		{2FEEAB4F-57CE-4E3D-B323-9AFA1BEC913B}.Debug|x64.ActiveCfg = Debug|x64
 		{2FEEAB4F-57CE-4E3D-B323-9AFA1BEC913B}.Debug|x64.Build.0 = Debug|x64
 		{2FEEAB4F-57CE-4E3D-B323-9AFA1BEC913B}.Debug|x86.ActiveCfg = Debug|Win32
