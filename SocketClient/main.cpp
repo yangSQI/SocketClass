@@ -1,7 +1,7 @@
-#include "../SocketClass/SocketBase.hpp"
 #include <iostream>
-using namespace yang;
+#include "SocketClient.hpp"
 using namespace std;
+using namespace yang;
 int main(int argc, char* argv[])
 {
 	SocketBase sockBase;

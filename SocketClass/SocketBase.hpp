@@ -1,5 +1,5 @@
-#ifndef __SOCKETBASE_H__
-#define __SOCKETBASE_H__
+#ifndef __SOCKETBASE_HPP__
+#define __SOCKETBASE_HPP__
 	#ifdef _WIN32
 		#define WIN32_LEAN_AND_MEAN
 		#include <WinSock2.h>
@@ -38,33 +38,46 @@ namespace yang
 		{
 			#ifdef _WIN32
 				u_long blockMode = (u_long)mode;
-				if (ioctlsocket(sock, FIONBIO, &blockMode)) // 设置SOCKET阻塞模式
+				if (::ioctlsocket(sock, FIONBIO, &blockMode)) // 设置SOCKET阻塞模式
 					return false;
 				else
 					return true;
 			#else
 				int blockMode = (int)mode;
 				int flags = 0;
-				flags = fcntl(sock, F_GETFL, 0);				//获取文件的flags值
+				flags = ::fcntl(sock, F_GETFL, 0);				//获取文件的flags值
 				if (flags != 0) return false;
 				if (blockMode)
-					flags = fcntl(sock, F_SETFL, flags | O_NONBLOCK);	//设置成非阻塞模式
+					flags = ::fcntl(sock, F_SETFL, flags | O_NONBLOCK);	//设置成非阻塞模式
 				else
-					flags = fcntl(sock, F_SETFL, flags &~ O_NONBLOCK);	//设置成阻塞模式
+					flags = ::fcntl(sock, F_SETFL, flags &~ O_NONBLOCK);	//设置成阻塞模式
 				if (flags != 0) return false;
 			#endif
+		}
+		/**
+		* @description : 关闭SOCKET套接字
+		* @param : 传入关闭的SOCKET 
+		* @return : 返回真假
+		*/
+		bool close(SOCKET sock)
+		{
+			#ifdef _WIN32
+				if (::closesocket(sock)) return false;
+			#else
+				if (::close(sock)) return false;
+			#endif
+			return true;
 		}
 	public:
 		SocketBase()
 		{
-			printf("SocketBase构造哈哈\n");
 			// 当sock个数为0时释放dll
 			if (_sockBaseCount == 0)
 			{
 				#ifdef _WIN32
 					WSADATA wsaData;
 					// 加载WinSock2的dll
-					if (WSAStartup(WINSOCK_VERSION, &wsaData))
+					if (::WSAStartup(WINSOCK_VERSION, &wsaData))
 						throw "WSAStartup_error";
 				#endif
 			}
@@ -77,12 +90,12 @@ namespace yang
 			{
 				#ifdef _WIN32
 					// 释放DLL
-				if (WSACleanup())
+				if (::WSACleanup())
 					throw "WSACleanup_error";
 				#endif
 			}
 		}
 	};
+	u_int SocketBase::_sockBaseCount = 0;
 };
-u_int yang::SocketBase::_sockBaseCount = 0;
 #endif

@@ -14,12 +14,9 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="SocketClient.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SocketClient.h">
+    <ClInclude Include="SocketClient.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
