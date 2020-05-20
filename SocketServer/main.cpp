@@ -2,7 +2,7 @@
 #include <iostream>
 #define RECV_SIZE	10240		// 接收缓冲区字节大小
 #define SEND_SIZE	10240		// 发送缓冲区字节大小
-#define PORT		88			// SOCKET服务端端口号
+#define PORT		888			// SOCKET服务端端口号
 #define CONN_NUM	128			// listen连接数
 #define THREAD_NUM	4			// 开启SOCKET接收和发送线程的数量
 using namespace yang;

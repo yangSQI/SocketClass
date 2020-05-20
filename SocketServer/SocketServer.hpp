@@ -137,6 +137,7 @@ namespace yang
 			SocketHandle* _sockHandle = _sockHandleGather.at(threadIndex);
 			for (;;)
 			{
+				printf("线程: %d, 客户端数量: %d\n", threadIndex, _sockHandle->get_len());
 				if (_sockHandle->get_len() == 0 && _sockHandle->get_mediu_len() == 0)
 				{
 					std::chrono::milliseconds t(1);
@@ -159,7 +160,7 @@ namespace yang
 					if (flag)
 					{
 						// 先从中间层取出SOCKET
-						//_sockHandle->get_sock_info();
+						_sockHandle->get_sock_info();
 					}
 				}
 				//_sockHandle->recv_data();

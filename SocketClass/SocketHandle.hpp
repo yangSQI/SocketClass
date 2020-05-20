@@ -2,9 +2,11 @@
 #define __SOCKETHANDLE_H__
 #include "SocketBase.hpp"
 #include <list>
+#include <vector>
 #include <mutex>
 namespace yang
 {
+	int num = 0;
 	class SocketHandle : public SocketBase
 	{
 	#define TAKE_OUT_NUM FD_SETSIZE / 10						// 从中间层一次拿出多少个客户端
@@ -12,7 +14,7 @@ namespace yang
 		typedef char* (*FnProcRecvMsg)(SocketInfo* _sockInfo);  // 处理客户端SOCKET的接收消息
 	private:
 		static int _sockHandleCount;							// 当前类的对象数量,关系到中间层的读写上不上锁
-		static std::list<SocketInfo*> _listSockInfoMedium;		// 客户端SOCKET列表,作为中间层,多线程使用
+		static std::list<SocketInfo*> _listSockInfoMedium;	// 客户端SOCKET列表,作为中间层,多线程使用
 		static int _listSockInfoMediumLen;						// 中间层客户端数量
 		static std::mutex _mutex;								// 中间层的锁
 		std::list<SocketInfo*> _listSockInfo;					// 客户端SOCKET列表
@@ -38,15 +40,21 @@ namespace yang
 			}
 		}
 		/**
-		* @description : 往中间层添加SOCKET
+		* @description : 往中间层添加SOCKINFO
 		* @param : _sockInfo: SOCKET信息的结构体
 		*/
 		static void push_back(SocketInfo* _sockInfo)
 		{
 			if (_sockHandleCount > 1)
-				std::lock_guard<std::mutex> lg(SocketHandle::_mutex); // lock_guard 在构造函数里加锁，在析构函数里解锁
+				std::lock_guard<std::mutex> lg(_mutex); // lock_guard 在构造函数里加锁，在析构函数里解锁
 			SocketHandle::_listSockInfoMedium.push_back(_sockInfo);
+			++_listSockInfoMediumLen;
 		}
+		/**
+		* @description : 删除中间层SOCKINFO
+		* @param : _sockInfo: SOCKET信息的结构体
+		*/
+		
 		/**
 		* @description : 从中间层SOCKET列表取出放到客户端SOCKET列表中
 		*/
@@ -56,20 +64,24 @@ namespace yang
 			if (_listSockInfoMedium.empty()) return;
 			if (_sockHandleCount > 1)
 			{
-				std::lock_guard<std::mutex> lg(SocketHandle::_mutex);
+				std::lock_guard<std::mutex> lg(_mutex);
 			}
 			// 再次检查
 			if (_listSockInfoMedium.empty()) return;
 			// 一次取出的长度 
-			int takeOutLen = _listSockInfoMedium.size() >= TAKE_OUT_NUM ? TAKE_OUT_NUM : _listSockInfoMedium.size();
+			int takeOutLen = _listSockInfoMediumLen >= TAKE_OUT_NUM ? TAKE_OUT_NUM : _listSockInfoMediumLen;
 			// 计算当前类中的SOCKINFO数量
 			_listSockInfoLen += takeOutLen;
+			// 计算当前中间层客户端数量
+			_listSockInfoMediumLen -= takeOutLen;
 			// 中间层的迭代器
 			auto it = _listSockInfoMedium.begin();
 			for (int i = 0; i < takeOutLen; ++i)
 			{
 				_listSockInfo.push_back(*it);
-				//it = _listSockInfoMedium.erase(it);
+				++_listSockInfoLen;
+				//printf("删除的中间层SOCKET: %d\n", (*it)->_sock);
+				it = _listSockInfoMedium.erase(it);
 			}
 		}
 		/**
@@ -78,8 +90,7 @@ namespace yang
 		*/
 		int get_len()
 		{
-			return _listSockInfo.size();
-			//return _listSockInfoLen;
+			return _listSockInfoLen;
 		}
 		/**
 		* @description : 返回中间层sockinfo数量
@@ -134,6 +145,14 @@ namespace yang
 						--itBegin;
 				}
 			}
+		}
+		/**
+		* @description : 取得中间层锁
+		* @return : 返回锁
+		*/
+		static std::mutex& get_mutex()
+		{
+			return _mutex;
 		}
 	};
 	int SocketHandle::_sockHandleCount = 0;
