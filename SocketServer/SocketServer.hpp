@@ -36,6 +36,7 @@ namespace yang
 		}
 		virtual ~SocketServer()
 		{
+			close(_sockServer);
 			for (auto _sockHandle : _sockHandleGather)
 			{
 				delete _sockHandle;
@@ -127,17 +128,11 @@ namespace yang
 		*/
 		void onRunRecvAndSendData(int threadIndex)
 		{
-			// 当SOCKET处理类全部创建完毕后才开始执行下面的语句
-			while (_sockHandleGather.size() < _threadNum)
-			{
-				std::chrono::milliseconds t(1);
-				// 延时
-				std::this_thread::sleep_for(t);
-			}
 			SocketHandle* _sockHandle = _sockHandleGather.at(threadIndex);
 			for (;;)
 			{
-				printf("线程: %d, 客户端数量: %d\n", threadIndex, _sockHandle->get_len());
+				printf("线程: %d, 客户端数量: %d, 中间层数量: %d\n", threadIndex, _sockHandle->get_len(), _sockHandle->get_mediu_len());
+				//printf("线程: %d, 客户端数量: %d\n", threadIndex, _sockHandle->get_len());
 				if (_sockHandle->get_len() == 0 && _sockHandle->get_mediu_len() == 0)
 				{
 					std::chrono::milliseconds t(1);
