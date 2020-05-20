@@ -26,5 +26,11 @@
     <ClInclude Include="SocketBase.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DataGather.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketHandle.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -76,12 +76,18 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)/bin/$(Platform)/$(Configuration)</OutDir>
+    <IntDir>$(SolutionDir)/temp/$(Platform)/$(Configuration)/$(ProjectName)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)/bin/$(Platform)/$(Configuration)</OutDir>
+    <IntDir>$(SolutionDir)/temp/$(Platform)/$(Configuration)/$(ProjectName)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)/bin/$(Platform)/$(Configuration)</OutDir>
+    <IntDir>$(SolutionDir)/temp/$(Platform)/$(Configuration)/$(ProjectName)</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -144,7 +150,9 @@
     <ClCompile Include="NetEvent.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DataGather.hpp" />
     <ClInclude Include="SocketBase.hpp" />
+    <ClInclude Include="SocketHandle.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
