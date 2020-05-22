@@ -17,6 +17,8 @@
 		#define u_int unsigned int
 	#endif
 #include <cstdlib>
+#include <atomic>
+extern std::atomic_uint recvCount;
 namespace yang
 {
 	struct SocketInfo
@@ -108,6 +110,7 @@ namespace yang
 			}
 			else
 			{
+				++recvCount;
 				_sockInfo->_recvLast += ret;
 				return true;
 			}

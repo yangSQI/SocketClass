@@ -1,6 +1,7 @@
 #ifndef __SOCKETHANDLE_H__
 #define __SOCKETHANDLE_H__
 #include "SocketBase.hpp"
+#include "NetEvent.hpp"
 #include <list>
 #include <vector>
 #include <mutex>
@@ -19,6 +20,9 @@ namespace yang
 		static std::mutex _mutex;								// 中间层的锁
 		std::list<SocketInfo*> _listSockInfo;					// 客户端SOCKET列表
 		int _listSockInfoLen = 0;								// 客户端SOCKET列表数量
+		static NetEvent* _netEvent;								// 客户端SOCKET网络事件处理类
+		fd_set _oldFdRead = { 0 };								// 客户端未更新的话用这个加快性能
+		bool _sockInfoChange = false;							// 客户端SOCKET列表是否更新过
 	public:
 		SocketHandle()
 		{
@@ -64,6 +68,8 @@ namespace yang
 			std::lock_guard<std::mutex> lg(_mutex);
 			// 再次检查
 			if (_listSockInfoMediumLen == 0) return;
+			// 更新状态
+			_sockInfoChange = true;
 			// 一次取出的长度 
 			int takeOutLen = _listSockInfoMediumLen >= TAKE_OUT_NUM ? TAKE_OUT_NUM : _listSockInfoMediumLen;
 			// 计算当前类中的SOCKINFO数量
@@ -90,7 +96,7 @@ namespace yang
 		* @description : 返回中间层sockinfo数量
 		* @return : 返回客户端列表数量
 		*/
-		int get_mediu_len()
+		static int get_mediu_len()
 		{
 			return _listSockInfoMediumLen;
 		}
@@ -109,49 +115,68 @@ namespace yang
 			int sockMax = 0;
 			// 临时指向SocketInfo的指针
 			SocketInfo* _sockInfo = NULL;
-			for (auto itBegin = _listSockInfo.begin(); itBegin != itEnd; ++itBegin)
+			if (_sockInfoChange)
 			{
-				_sockInfo = *itBegin;
-				FD_SET(_sockInfo->_sock, &fdRead);
-				if (_sockInfo->_sock > sockMax)
-					sockMax = _sockInfo->_sock;
+				for (auto itBegin = _listSockInfo.begin(); itBegin != itEnd; ++itBegin)
+				{
+					_sockInfo = *itBegin;
+					FD_SET(_sockInfo->_sock, &fdRead);
+					if (_sockInfo->_sock > sockMax)
+						sockMax = _sockInfo->_sock;
+				}
+				_oldFdRead = fdRead;
+				_sockInfoChange = false;
+			}
+			else
+			{
+				fdRead = _oldFdRead;
 			}
 			timeval tv = { 0 };
 			::select(sockMax + 1, &fdRead, NULL, NULL, &tv);
+			// 循环处理客户端列表的socket
 			for (auto itBegin = _listSockInfo.begin(); itBegin != itEnd; ++itBegin)
 			{
 				_sockInfo = *itBegin;
-				if (SocketBase::recv_data(_sockInfo))
+				if (FD_ISSET(_sockInfo->_sock, &fdRead))
 				{
-					
-				}
-				else // 断开连接
-				{
-					printf("socket level, ip: %s, port: %d\n", inet_ntoa(_sockInfo->_sockaddr.sin_addr), ntohs(_sockInfo->_sockaddr.sin_port));
-					// 关闭SOCKET
-					close(_sockInfo->_sock);
-					// 释放
-					delete _sockInfo;
-					// 从客户端列表中删除断开连接的SOCKET
-					itBegin = _listSockInfo.erase(itBegin);
-					// 检测是否在起点,在起点--会出错
-					if (itBegin != _listSockInfo.begin())
-						--itBegin;
+					if (SocketBase::recv_data(_sockInfo))
+					{
+						// 接收消息
+						_netEvent->OnNetRecv(_sockInfo);
+					}
+					else // 断开连接
+					{
+						// 离开消息
+						_netEvent->OnNetLeave(_sockInfo);
+						// 关闭SOCKET
+						close(_sockInfo->_sock);
+						// 释放
+						delete _sockInfo;
+						// 从客户端列表中删除断开连接的SOCKET
+						itBegin = _listSockInfo.erase(itBegin);
+						// 检测是否在起点,在起点--会出错
+						if (itBegin != _listSockInfo.begin())
+							--itBegin;
+						// 更新客户端状态
+						_sockInfoChange = true;
+					}
 				}
 			}
 		}
 		/**
-		* @description : 取得中间层锁
-		* @return : 返回锁
+		* @description : 设置网络处理类
+		* @param : 参数描述
+		* @return : 返回值描述
 		*/
-		static std::mutex& get_mutex()
+		static void SetNetEvent(NetEvent* netEvent)
 		{
-			return _mutex;
+			_netEvent = netEvent;
 		}
 	};
 	int SocketHandle::_sockHandleCount = 0;
 	std::list<SocketInfo*> SocketHandle::_listSockInfoMedium;
 	int SocketHandle::_listSockInfoMediumLen = 0;
 	std::mutex SocketHandle::_mutex;
+	NetEvent* SocketHandle::_netEvent = NULL;
 };
 #endif

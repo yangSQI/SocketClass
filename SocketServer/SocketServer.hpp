@@ -7,6 +7,9 @@
 #include <functional>
 #include <chrono>
 
+#include <atomic>
+std::atomic_uint packageNum(0);
+std::atomic_uint recvCount(0);
 namespace yang
 {
 	class SocketServer :
@@ -81,6 +84,21 @@ namespace yang
 		*/
 		void onRunAccept()
 		{
+			static std::chrono::system_clock::time_point _start = std::chrono::system_clock::now(), _end;
+			_end = std::chrono::system_clock::now();
+			long long _interTime = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start).count();
+			if (_interTime > 1000000)
+			{
+				unsigned int _packageNum = packageNum;
+				unsigned int _recvCount = recvCount;
+				printf("time<%d>, ", _interTime);
+				printf("包数量: %u, ", (unsigned int)_packageNum);
+				printf("recvCount: %u\n", (unsigned int)_recvCount);
+				_start = std::chrono::system_clock::now();
+				packageNum = 0;
+				recvCount = 0;
+			}
+
 			fd_set fdRead;
 			FD_ZERO(&fdRead);
 			FD_SET(_sockServer, &fdRead);
@@ -131,8 +149,7 @@ namespace yang
 			SocketHandle* _sockHandle = _sockHandleGather.at(threadIndex);
 			for (;;)
 			{
-				printf("线程: %d, 客户端数量: %d, 中间层数量: %d\n", threadIndex, _sockHandle->get_len(), _sockHandle->get_mediu_len());
-				//printf("线程: %d, 客户端数量: %d\n", threadIndex, _sockHandle->get_len());
+				//printf("线程: %d, 客户端数量: %d, 中间层数量: %d\n", threadIndex, _sockHandle->get_len(), _sockHandle->get_mediu_len());
 				if (_sockHandle->get_len() == 0 && _sockHandle->get_mediu_len() == 0)
 				{
 					std::chrono::milliseconds t(1);
@@ -158,12 +175,20 @@ namespace yang
 						_sockHandle->get_sock_info();
 					}
 				}
-				//_sockHandle->recv_data();
+				_sockHandle->recv_data();
 				//std::chrono::seconds t(1);
 				//// 延时
 				//std::this_thread::sleep_for(t);
 				//printf("线程: %d, _sockInfo数量: %d\n", threadIndex, _sockHandle->_listSockInfo.size());
 			}
+		}
+		/**
+		* @description : 设置客户端列表的网络处理类
+		* @param : netEvent: 网络处理类
+		*/
+		void SetNetEvent(NetEvent* netEvent)
+		{
+			SocketHandle::SetNetEvent(netEvent);
 		}
 	protected:
 		/**
