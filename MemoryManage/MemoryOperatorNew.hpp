@@ -1,5 +1,5 @@
-#ifndef __MEMORYOPERATORNEW_H__
-#define __MEMORYOPERATORNEW_H__
+#ifndef __MEMORYOPERATORNEW_HPP__
+#define __MEMORYOPERATORNEW_HPP__
 #include "MemoryManage.hpp"
 namespace yang
 {

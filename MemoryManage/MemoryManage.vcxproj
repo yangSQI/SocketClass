@@ -138,7 +138,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="MemoryBlock.hpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="MemoryManage.hpp" />
     <ClCompile Include="MemoryPool.hpp" />
   </ItemGroup>
