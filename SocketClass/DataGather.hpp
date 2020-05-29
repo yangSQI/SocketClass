@@ -3,7 +3,9 @@
 enum class DataType
 {
 	LOGIN,
-	LOGOUT
+	LOGOUT,
+	LOGIN_REPLY,
+	LOGOUT_REPLY
 };
 struct DataHeader
 {
@@ -22,6 +24,16 @@ struct Login
 		dataHeader.dataType = DataType::LOGIN;
 	}
 };
+struct LoginReply
+{
+	DataHeader dataHeader;
+	char reply[100] = { 0 }; // 登录回复信息
+	LoginReply()
+	{
+		dataHeader.len = sizeof(LoginReply);
+		dataHeader.dataType = DataType::LOGIN_REPLY;
+	}
+};
 struct Logout
 {
 	DataHeader dataHeader;
@@ -30,6 +42,16 @@ struct Logout
 	{
 		dataHeader.len = sizeof(Logout);
 		dataHeader.dataType = DataType::LOGOUT;
+	}
+};
+struct LogoutReply
+{
+	DataHeader dataHeader;
+	char reply[100] = { 0 }; // 登出回复信息
+	LogoutReply()
+	{
+		dataHeader.len = sizeof(LogoutReply);
+		dataHeader.dataType = DataType::LOGOUT_REPLY;
 	}
 };
 #endif

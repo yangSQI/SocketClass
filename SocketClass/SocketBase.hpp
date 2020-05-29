@@ -17,11 +17,12 @@
 		#define u_int unsigned int
 	#endif
 #include <cstdlib>
-#include <atomic>
-extern std::atomic_uint recvCount;
+#include "../SocketClass/DataGather.hpp"
+#include <cstdio>
+#include "../MemoryManage/MemoryOperatorNew.hpp"
 namespace yang
 {
-	struct SocketInfo
+	struct SocketInfo : public MemoryOperatorNew
 	{
 	public:
 		SOCKET _sock = -1;				// SOCKET
@@ -110,7 +111,6 @@ namespace yang
 			}
 			else
 			{
-				++recvCount;
 				_sockInfo->_recvLast += ret;
 				return true;
 			}
@@ -122,9 +122,20 @@ namespace yang
 		*/
 		int send_data(SocketInfo* _sockInfo)
 		{
+			LoginReply* lp = (LoginReply*)_sockInfo->_sendStart;
+			//printf("回复的消息: %s\n", lp->reply);
 			// 发送的数据大小
 			int sendDataLen = _sockInfo->_sendLast - _sockInfo->_sendStart;
-			return ::send(_sockInfo->_sock, _sockInfo->_sendStart, sendDataLen, 0);
+			int ret = ::send(_sockInfo->_sock, _sockInfo->_sendStart, sendDataLen, 0);
+			if (-1 == ret)
+			{
+				return -1;
+			}
+			else
+			{
+				_sockInfo->_sendLast = _sockInfo->_sendStart;
+				return ret;
+			}
 		}
 	public:
 		SocketBase()

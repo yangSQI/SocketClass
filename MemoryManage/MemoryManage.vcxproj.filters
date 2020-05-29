@@ -29,5 +29,8 @@
     <ClInclude Include="MemoryOperatorNew.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Debug.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

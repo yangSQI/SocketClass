@@ -2,7 +2,8 @@
 #define __MEMORYMANAGE_HPP__
 #include <stdlib.h>
 #include "MemoryPool.hpp"
-#define MAX_MEMORY_SIZE 64
+#include "Debug.h"
+#include <mutex>
 namespace yang
 {
 	// 内存管理类, 单例类, 调用 getInstance获取
@@ -10,10 +11,19 @@ namespace yang
 	{
 	protected:
 		MemoryManage() {
-			init(0, MAX_MEMORY_SIZE, &_memPool64);
+			initPoolMapping(0, 64, &_memPool64);
+			initPoolMapping(65, 128, &_memPool128);
+			initPoolMapping(129, 256, &_memPool256);
+			initPoolMapping(257, 512, &_memPool512);
+			initPoolMapping(513, 1024, &_memPool1024);
 		}
-		MemoryPoolTor<64, 10> _memPool64;	// 64字节的10个内存块
-		MemoryPool* _szPool[MAX_MEMORY_SIZE + 1];			// 内存池映射数组
+		MemoryPoolTor<64, 100000> _memPool64;		// 64字节的10个内存块
+		MemoryPoolTor<128, 100000> _memPool128;	// 128字节的10个内存块
+		MemoryPoolTor<256, 100> _memPool256;	// 256字节的10个内存块
+		MemoryPoolTor<512, 100> _memPool512;	// 512字节的10个内存块
+		MemoryPoolTor<1024, 100> _memPool1024;	// 1024字节的10个内存块
+		MemoryPool* _poolMapping[1025];			// 内存池映射数组
+		std::mutex _mutex;						
 	public:
 		virtual ~MemoryManage()
 		{
@@ -37,9 +47,10 @@ namespace yang
 		*/
 		void* allocMem(size_t nSize)
 		{
-			if (nSize <= MAX_MEMORY_SIZE)
+			if (nSize <= 1024)
 			{
-				return _szPool[nSize]->allocMem(nSize);
+				std::lock_guard<std::mutex> lg(_mutex); // lock_guard 在构造函数里加锁，在析构函数里解锁
+				return _poolMapping[nSize]->allocMem(nSize);
 			}
 			else
 			{
@@ -49,6 +60,7 @@ namespace yang
 				pReturn->_bPool = false;	// 是否在内存 			
 				pReturn->_pPool = nullptr;		// 指向内存池			
 				pReturn->_pNext = nullptr;  // 内存块下一块地址为空			
+				xPrintf("申请内存地址: %p, 内存编号: %d, 内存大小: %u\n", pReturn, pReturn->_nID, nSize);
 				return (char*)pReturn + sizeof(MemoryBlock);
 			}
 		}
@@ -59,12 +71,15 @@ namespace yang
 		void freeMem(void* pMem)
 		{
 			MemoryBlock* pMemBlock = (MemoryBlock*)((char*)pMem - sizeof(MemoryBlock));
-			if (pMemBlock->_pPool)
+			if (pMemBlock->_bPool)
 			{
+				_mutex.lock();
 				pMemBlock->_pPool->freeMem(pMem);
+				_mutex.unlock();
 			}
 			else
 			{
+				xPrintf("释放的内存地址: %p, 内存编号: %d\n", pMemBlock, pMemBlock->_nID);
 				if (--pMemBlock->_nRef == 0)
 					::free(pMemBlock);
 			}
@@ -81,11 +96,11 @@ namespace yang
 		/**
 		* @description : 初始化内存池映射数组
 		*/
-		void init(int nBegin, int nEnd, MemoryPool* pMemPool)
+		void initPoolMapping(int nBegin, int nEnd, MemoryPool* pMemPool)
 		{
-			for (int i = nBegin; i < nEnd; ++i)
+			for (int i = nBegin; i <= nEnd; ++i)
 			{
-				_szPool[i] = pMemPool;
+				_poolMapping[i] = pMemPool;
 			}
 		}
 	};

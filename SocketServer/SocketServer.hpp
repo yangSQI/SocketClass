@@ -2,28 +2,28 @@
 #define __SOCKETSERVER_HPP__
 #include "../SocketClass/SocketBase.hpp"
 #include "../SocketClass/SocketHandle.hpp"
+#include "NetEventServer.hpp"
 #include <thread>
 #include <vector>
 #include <functional>
 #include <chrono>
-
-#include <atomic>
-std::atomic_uint packageNum(0);
-std::atomic_uint recvCount(0);
 namespace yang
 {
 	class SocketServer :
 		public SocketBase
 	{
 	protected:
-		SocketBlockMode _blockMode;						// 阻塞模式
-		u_int _recvSize;								// 接收缓冲区大小	
-		u_int _sendSize;								// 发送缓冲区大小
-		SOCKET _sockServer;								// 服务端SOCKET
-		sockaddr_in _addrServer = { 0 };				// 服务端SOCKET信息结构体
-		int _threadNum = 0;								// 开启的线程数量
-		std::mutex _mutex;								// _listSockInfo操作的锁
-		std::vector<SocketHandle*> _sockHandleGather;	// SocketHandle处理类列表
+		SocketBlockMode _blockMode;							// 阻塞模式
+		u_int _recvSize;									// 接收缓冲区大小	
+		u_int _sendSize;									// 发送缓冲区大小
+		SOCKET _sockServer;									// 服务端SOCKET
+		sockaddr_in _addrServer = { 0 };					// 服务端SOCKET信息结构体
+		int _recvThreadNum = 0;								// 接收消息线程数量
+		int _sendThreadNum = 0;								// 发送消息线程数量
+		std::mutex _mutex;									// _listSockInfo操作的锁
+		std::vector<SocketHandle*> _recvSockHandleGather;	// SocketHandle处理类列表
+		std::vector<SocketHandle*> _sendSockHandleGather;	// SocketHandle处理类列表
+		NetEvent* _netEvent = new NetEventServer;			// 网络消息处理类
 	public:
 		/**
 		* @description : 构造函数
@@ -39,8 +39,9 @@ namespace yang
 		}
 		virtual ~SocketServer()
 		{
+			delete _netEvent;
 			close(_sockServer);
-			for (auto _sockHandle : _sockHandleGather)
+			for (auto _sockHandle : _recvSockHandleGather)
 			{
 				delete _sockHandle;
 			}
@@ -67,14 +68,22 @@ namespace yang
 		* @param : threadNum: 启动线程的数量
 		* @return : 返回值描述
 		*/
-		void start(int threadNum = 4)
+		void start(int recvThreadNum = 4, int sendThreadNum = 1)
 		{
-			_threadNum = threadNum;
-			for (int i = 0; i < _threadNum; ++i)
+			_recvThreadNum = recvThreadNum;
+			_sendThreadNum = sendThreadNum;
+			for (int i = 0; i < _recvThreadNum; ++i)
 			{
 				// 添加线程处理的SOCKET处理类
-				_sockHandleGather.push_back(new SocketHandle);
-				std::thread _thread(std::mem_fn(&SocketServer::onRunRecvAndSendData), this, i);
+				_recvSockHandleGather.push_back(new SocketHandle);
+				std::thread _thread(std::mem_fn(&SocketServer::onRunRecvData), this, i);
+				_thread.detach();
+			}
+			for (int i = 0; i < _sendThreadNum; ++i)
+			{
+				// 添加线程处理的SOCKET处理类
+				_sendSockHandleGather.push_back(new SocketHandle);
+				std::thread _thread(std::mem_fn(&SocketServer::onRunSendData), this, i);
 				_thread.detach();
 			}
 		}
@@ -84,21 +93,6 @@ namespace yang
 		*/
 		void onRunAccept()
 		{
-			static std::chrono::system_clock::time_point _start = std::chrono::system_clock::now(), _end;
-			_end = std::chrono::system_clock::now();
-			long long _interTime = std::chrono::duration_cast<std::chrono::microseconds>(_end - _start).count();
-			if (_interTime > 1000000)
-			{
-				unsigned int _packageNum = packageNum;
-				unsigned int _recvCount = recvCount;
-				printf("time<%d>, ", _interTime);
-				printf("包数量: %u, ", (unsigned int)_packageNum);
-				printf("recvCount: %u\n", (unsigned int)_recvCount);
-				_start = std::chrono::system_clock::now();
-				packageNum = 0;
-				recvCount = 0;
-			}
-
 			fd_set fdRead;
 			FD_ZERO(&fdRead);
 			FD_SET(_sockServer, &fdRead);
@@ -116,14 +110,7 @@ namespace yang
 				}
 				else
 				{
-				#ifdef _WIN32
-					static int sockNum = 0;
-					++sockNum;
-					char buff[20];
-					snprintf(buff, 20, "SockNum: %d", sockNum);
-					SetConsoleTitleA(buff);
-				#endif
-					//printf("客户端SOCKET接入: %d, 端口: %d, ip: %s\n", _sockInfo->_sock, ntohs(_sockInfo->_sockaddr.sin_port), inet_ntoa(_sockInfo->_sockaddr.sin_addr));
+					_netEvent->OnNetAccept(_sockInfo);
 					if (!set_block_mode(_sockInfo->_sock, _blockMode))
 					{
 						throw "call set_block_mode error, param: SocketClient";
@@ -135,44 +122,44 @@ namespace yang
 					_sockInfo->_sendStart = (char*)malloc(_sendSize);
 					_sockInfo->_sendLast = _sockInfo->_sendStart;
 					_sockInfo->_sendLen = _sendSize;
-					SocketHandle::push_back(_sockInfo);
+					SocketHandle::recv_push_back(_sockInfo);
 				}
 			}
 		}
 		/**
-		* @description : 处理客户端SOCKET的接收和发送
+		* @description : 处理客户端SOCKET的接收
 		* @param : 参数描述
 		* @return : 返回值描述
 		*/
-		void onRunRecvAndSendData(int threadIndex)
+		void onRunRecvData(int threadIndex)
 		{
-			SocketHandle* _sockHandle = _sockHandleGather.at(threadIndex);
+			SocketHandle* _sockHandle = _recvSockHandleGather.at(threadIndex);
 			for (;;)
 			{
 				//printf("线程: %d, 客户端数量: %d, 中间层数量: %d\n", threadIndex, _sockHandle->get_len(), _sockHandle->get_mediu_len());
-				if (_sockHandle->get_len() == 0 && _sockHandle->get_mediu_len() == 0)
+				if (_sockHandle->get_recv_len() == 0 && _sockHandle->get_recv_mediu_len() == 0)
 				{
 					std::chrono::milliseconds t(1);
 					// 延时
 					std::this_thread::sleep_for(t);
 					continue;
 				}
-				if (_sockHandle->get_mediu_len() > 0)
+				if (_sockHandle->get_recv_mediu_len() > 0)
 				{
 					bool flag = true;
 					// 当前SOCKET处理类中的客户端列表大于其他线程的话,就不从中间层取数据
-					for (int i = 0; i < _threadNum; ++i)
+					for (int i = 0; i < _recvThreadNum; ++i)
 					{
 						if (i != threadIndex)
 						{
-							if (_sockHandle->get_len() > _sockHandleGather.at(i)->get_len())
+							if (_sockHandle->get_recv_len() > _recvSockHandleGather.at(i)->get_recv_len())
 								flag = false;
 						}
 					}
 					if (flag)
 					{
 						// 先从中间层取出SOCKET
-						_sockHandle->get_sock_info();
+						_sockHandle->get_recv_sock_info();
 					}
 				}
 				_sockHandle->recv_data();
@@ -182,6 +169,50 @@ namespace yang
 				//printf("线程: %d, _sockInfo数量: %d\n", threadIndex, _sockHandle->_listSockInfo.size());
 			}
 		}
+		/**
+		* @description : 处理客户端SOCKET的发送
+		* @param : 参数描述
+		* @return : 返回值描述
+		*/
+		void onRunSendData(int threadIndex)
+		{
+			SocketHandle* _sockHandle = _sendSockHandleGather.at(threadIndex);
+			for (;;)
+			{
+				//printf("线程: %d, 客户端数量: %d, 中间层数量: %d\n", threadIndex, _sockHandle->get_len(), _sockHandle->get_mediu_len());
+				if (_sockHandle->get_send_len() == 0 && _sockHandle->get_send_mediu_len() == 0)
+				{
+					std::chrono::milliseconds t(1);
+					// 延时
+					std::this_thread::sleep_for(t);
+					continue;
+				}
+				if (_sockHandle->get_send_mediu_len() > 0)
+				{
+					bool flag = true;
+					// 当前SOCKET处理类中的客户端列表大于其他线程的话,就不从中间层取数据
+					for (int i = 0; i < _sendThreadNum; ++i)
+					{
+						if (i != threadIndex)
+						{
+							if (_sockHandle->get_recv_len() > _recvSockHandleGather.at(i)->get_recv_len())
+								flag = false;
+						}
+					}
+					if (flag)
+					{
+						// 先从中间层取出SOCKET
+						_sockHandle->get_send_sock_info();
+					}
+				}
+				_sockHandle->send_data();
+				//std::chrono::seconds t(1);
+				//// 延时
+				//std::this_thread::sleep_for(t);
+				//printf("线程: %d, _sockInfo数量: %d\n", threadIndex, _sockHandle->_listSockInfo.size());
+			}
+		}
+
 		/**
 		* @description : 设置客户端列表的网络处理类
 		* @param : netEvent: 网络处理类

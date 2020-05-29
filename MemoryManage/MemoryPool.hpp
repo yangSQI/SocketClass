@@ -2,6 +2,7 @@
 #define __MEMORYPOOL_HPP__
 #include <stdlib.h>
 #include <assert.h>
+#include "Debug.h"
 namespace yang
 {
 	class MemoryPool;
@@ -56,7 +57,8 @@ namespace yang
 			if (_pBuf)
 				return;
 			// 计算内存池大小
-			size_t bufSize = _nBlockLen * (_nBlockSize + _nMemoryBlockSize);
+			size_t realSize = _nBlockSize + _nMemoryBlockSize;
+			size_t bufSize = _nBlockLen * realSize;
 			// 为内存池申请内存
 			_pBuf = (char*)malloc(bufSize);
 			_pHeader = (MemoryBlock*)_pBuf;
@@ -74,7 +76,7 @@ namespace yang
 				if (i == nTemp)
 					pTemp->_pNext = nullptr; // 内存块下一块地址为空
 				else
-					pTemp->_pNext = (MemoryBlock*)(_pBuf + (i * _nBlockSize));
+					pTemp->_pNext = (MemoryBlock*)(_pBuf + ((i + 1) * realSize));
 				pTemp = pTemp->_pNext; // 内存块下一块地址
 			}
 		}
@@ -105,6 +107,7 @@ namespace yang
 				assert(0 == pReturn->_nRef);
 				pReturn->_nRef = 1;
 			}
+			xPrintf("申请内存地址: %p, 内存编号: %d, 内存大小: %u\n", pReturn, pReturn->_nID, size);
 			return (char*)pReturn + _nMemoryBlockSize;
 		}
 		/**
@@ -128,6 +131,7 @@ namespace yang
 			{
 				::free(pBlock);
 			}
+			xPrintf("释放的内存地址: %p, 内存编号: %d\n", pBlock, pBlock->_nID);
 		}
 	};
 	// 内存池模板赋值,给成员变量方便复制模板类	
