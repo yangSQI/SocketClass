@@ -57,6 +57,7 @@ namespace yang
 			_addrServer.sin_family = AF_INET;					// 地址族规范
 			_addrServer.sin_port = htons(port);				// 该程序本地端口号
 			_addrServer.sin_addr.s_addr = htonl(INADDR_ANY);	// 绑定本地ip地址
+
 			if (::bind(_sockServer, (sockaddr*)&_addrServer, sizeof(sockaddr)) == -1 || ::listen(_sockServer, connNum) == -1)
 			{
 				return false;

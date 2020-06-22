@@ -1,25 +1,22 @@
-#include <iostream>
-#include <ctime>
-using namespace std;
+#define WIN32_LEAN_AND_MEAN
+#include <WinSock2.h>
+#include <windows.h>
+#include <WS2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
 int main(int argc, char* argv[])
 {
-	time_t _time;
-	time(&_time);
-	char* pTime = ctime(&_time); // 时间日期字符串	
-	printf("%s\n", pTime);
-	time_t t;
-	tm* lt;
-	time(&t);							//获取时间戳。
-	lt = localtime(&t);					//转为时间结构。
-	int tm_year = lt->tm_year + 1900;	// 年份，其值等于实际年份减去1900
-	int tm_mon = lt->tm_mon + 1;		    // 月份（从一月开始，0代表一月） - 取值区间为[0,11]
-	int tm_mday = lt->tm_mday;			// 一个月中的日期 - 取值区间为[1,31] 
-	int tm_hour = lt->tm_hour;			// 时 - 取值区间为[0,23]
-	int tm_min = lt->tm_min;			    // 分 - 取值区间为[0,59] 
-	int tm_sec = lt->tm_sec;			    // 秒 – 取值区间为[0,59]
-	char buff[100] = { 0 };
-	snprintf(buff, 100, "%d %d %d %d:%d:%d\n", tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec);
-	printf("%s\n", buff);
-	system("pause");
+
+	WSADATA wsaData = { 0 };
+	WSAStartup(MAKEWORD(2, 2), &wsaData);
+	SOCKET sockServer = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	sockaddr_in addrServer = { 0 };
+	addrServer.sin_family = AF_INET;
+	addrServer.sin_port = htons(88);
+	addrServer.sin_addr.s_addr = INADDR_ANY;
+	bind(sockServer, (sockaddr*)&addrServer, sizeof(sockaddr));
+	listen(sockServer, SOMAXCONN);
+	sockaddr addrClient;
+	int addrLen = sizeof(sockaddr);
+	accept(sockServer, &addrClient, &addrLen);
 	return 0;
 }
